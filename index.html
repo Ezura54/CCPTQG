@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>临床药师理论试题智能生成器 v3.0</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.2/marked.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+
+        body { 
+            font-family: 'Noto Sans SC', sans-serif; 
+            background-color: #f3f4f6;
+        }
+
+        /* ---------------- 试卷纸张效果 CSS ---------------- */
+        .paper-container {
+            background-color: white;
+            width: 210mm; 
+            min-height: 297mm; 
+            margin: 0 auto;
+            padding: 20mm;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            color: #000;
+            font-family: 'Noto Serif SC', 'SimSun', serif; 
+            line-height: 1.6;
+        }
+
+        .exam-content h1 {
+            font-size: 24px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 10px;
+            color: #000;
+            page-break-before: always;
+        }
+        .exam-content h1:first-child {
+            page-break-before: auto;
+        }
+
+        .exam-content .exam-header-info {
+            text-align: center;
+            margin-bottom: 30px;
+            font-family: 'Noto Sans SC', sans-serif;
+            font-size: 14px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 15px;
+        }
+
+        .exam-content h2 {
+            font-size: 18px;
+            font-weight: 700;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            padding: 5px 10px;
+            background-color: #f0f0f0;
+            border-left: 5px solid #4b5563;
+        }
+
+        .exam-content h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .exam-content p {
+            margin-bottom: 10px;
+            text-align: justify;
+        }
+
+        .exam-content ul {
+            list-style-type: none;
+            padding-left: 0;
+            margin-bottom: 15px;
+        }
+        
+        .exam-content li {
+            padding-left: 20px;
+            text-indent: -20px; 
+            margin-bottom: 5px;
+        }
+
+        .exam-content strong {
+            font-weight: 800;
+            text-decoration: underline; 
+        }
+
+        .knowledge-point {
+            font-size: 0.9em;
+            color: #666;
+            font-family: 'Noto Sans SC', sans-serif;
+            float: right;
+        }
+
+        .answer-section {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px dashed #ccc;
+        }
+
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Checkbox Style */
+        .kp-checkbox:checked + div {
+            background-color: #eff6ff;
+            border-color: #3b82f6;
+            color: #1e40af;
+        }
+        .kp-checkbox:checked + div i {
+            opacity: 1;
+        }
+
+        @media print {
+            body * { visibility: hidden; }
+            #previewContainer, #previewContainer * { visibility: visible; }
+            #previewContainer {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 0;
+                box-shadow: none;
+            }
+            aside, header { display: none; }
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm z-20 border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-indigo-600 text-white p-2 rounded-lg shadow-sm">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-gray-900 leading-tight">临床药师试题生成器</h1>
+                    <p class="text-xs text-gray-500">v2.12 考点自选版 | 支持 Gemini/DeepSeek</p>
+                </div>
+            </div>
+            <div class="flex space-x-3">
+                <button onclick="printExam()" class="px-3 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm flex items-center gap-2 transition">
+                    <i class="fa-solid fa-print"></i> 打印预览
+                </button>
+                <button onclick="exportToWord()" class="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm flex items-center gap-2 transition">
+                    <i class="fa-solid fa-file-word"></i> 导出Word
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex overflow-hidden">
+        
+        <!-- Left Sidebar: Configuration -->
+        <aside class="w-1/3 bg-white border-r border-gray-200 flex flex-col overflow-y-auto shadow-inner z-10">
+            <div class="p-6 space-y-6">
+                
+                <!-- API Key Section -->
+                <div class="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
+                    <label class="block text-sm font-bold text-indigo-900 mb-2">
+                        <i class="fa-solid fa-key mr-1"></i> 模型设置
+                    </label>
+                    
+                    <select id="apiProvider" onchange="toggleModelSelect()" class="w-full mb-2 text-sm border-gray-300 rounded-md shadow-sm p-2 border focus:ring-2 focus:ring-indigo-500">
+                        <option value="gemini">Google Gemini (推荐)</option>
+                        <option value="custom">SiliconFlow / 自定义 (OpenAI兼容)</option>
+                        <option value="openai">OpenAI (官方)</option>
+                    </select>
+
+                    <!-- Gemini Options -->
+                    <div id="geminiModelSelect" class="mb-2">
+                        <select id="geminiModelId" class="w-full text-sm border-gray-300 rounded-md shadow-sm p-2 border focus:ring-2 focus:ring-indigo-500">
+                            <option value="gemini-2.5-flash-preview-09-2025">gemini-2.5-flash (最新)</option>
+                            <option value="gemini-1.5-pro">gemini-1.5-pro (推理强)</option>
+                            <option value="gemini-1.5-flash">gemini-1.5-flash (稳定)</option>
+                        </select>
+                    </div>
+
+                    <!-- Custom Options -->
+                    <div id="customConfig" class="mb-2 hidden space-y-2 border-l-2 border-indigo-300 pl-2">
+                        <div>
+                            <label class="block text-[10px] text-gray-500">Base URL</label>
+                            <input type="text" id="customBaseUrl" value="https://api.siliconflow.cn/v1" placeholder="https://api.siliconflow.cn/v1" class="w-full text-xs border-gray-300 rounded-md p-1 border">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-gray-500">Model ID</label>
+                            <input type="text" id="customModelId" value="deepseek-ai/DeepSeek-V3" placeholder="例如: deepseek-ai/DeepSeek-V3" class="w-full text-xs border-gray-300 rounded-md p-1 border">
+                        </div>
+                    </div>
+
+                    <input type="password" id="apiKey" placeholder="输入 API Key (sk-...)" class="w-full text-sm border-gray-300 rounded-md shadow-sm p-2 border focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <!-- Step 1: Upload -->
+                <div>
+                    <h2 class="text-sm font-bold text-gray-700 mb-3 flex items-center">
+                        <span class="bg-gray-200 text-gray-700 rounded-full w-5 h-5 flex items-center justify-center text-xs mr-2">1</span>
+                        导入知识库 (PDF)
+                    </h2>
+                    <div id="dropZone" class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:bg-gray-50 transition-colors cursor-pointer relative group">
+                        <input type="file" id="fileInput" multiple accept=".pdf" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                        <i class="fa-solid fa-book-medical text-3xl text-gray-400 mb-2 group-hover:text-indigo-500 transition"></i>
+                        <p class="text-sm text-gray-600">点击或拖拽上传</p>
+                    </div>
+                    <div id="fileList" class="mt-3 space-y-2 text-sm"></div>
+                    <div id="uploadStatus" class="mt-2 text-xs text-gray-500 hidden">解析中...</div>
+                </div>
+
+                <!-- Step 2: Exam Config -->
+                <div>
+                    <h2 class="text-sm font-bold text-gray-700 mb-3 flex items-center">
+                        <span class="bg-gray-200 text-gray-700 rounded-full w-5 h-5 flex items-center justify-center text-xs mr-2">2</span>
+                        试卷设置
+                    </h2>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">试卷主标题</label>
+                            <input type="text" id="examTitle" value="2025年临床药师规范化培训专业考核试卷" class="w-full text-sm border-gray-300 rounded-md p-2 border focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 bg-gray-50 p-2 rounded border">
+                            <div><label class="text-xs">A型题(单)</label><input type="number" id="countA" value="5" min="0" class="w-full text-xs p-1 border rounded"></div>
+                            <div><label class="text-xs">B型题(组)</label><input type="number" id="countB" value="1" min="0" class="w-full text-xs p-1 border rounded"></div>
+                            <div><label class="text-xs">X型题(多)</label><input type="number" id="countX" value="2" min="0" class="w-full text-xs p-1 border rounded"></div>
+                            <div><label class="text-xs">案例题(个)</label><input type="number" id="countCase" value="1" min="0" class="w-full text-xs p-1 border rounded"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Knowledge Points (New) -->
+                <div>
+                    <h2 class="text-sm font-bold text-gray-700 mb-2 flex items-center justify-between">
+                        <span class="flex items-center"><span class="bg-gray-200 text-gray-700 rounded-full w-5 h-5 flex items-center justify-center text-xs mr-2">3</span>考点覆盖配置</span>
+                        <button onclick="toggleAllKP()" class="text-xs text-indigo-600 hover:underline">全选/反选</button>
+                    </h2>
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg h-40 overflow-y-auto p-2 space-y-1" id="kpContainer">
+                        <!-- Generated via JS -->
+                    </div>
+                </div>
+
+                <button id="generateBtn" onclick="generateExam()" class="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 font-bold shadow-md transform transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> 基于选定考点生成
+                </button>
+            </div>
+        </aside>
+
+        <!-- Right Preview Area -->
+        <main class="w-2/3 bg-gray-200 p-8 overflow-y-auto flex justify-center">
+            <div id="previewContainer" class="paper-container exam-content relative">
+                <div id="placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-gray-400 z-0">
+                    <i class="fa-solid fa-clipboard-list text-6xl mb-4 opacity-30"></i>
+                    <p class="text-lg font-serif">配置完成请点击生成</p>
+                    <p class="text-sm opacity-60">将根据勾选的考点出题</p>
+                </div>
+                <div id="markdownOutput" class="relative z-10 min-h-[500px]"></div>
+            </div>
+        </main>
+
+    </main>
+
+    <script>
+        // State
+        let extractedText = "";
+        let filesProcessed = 0;
+        let totalFiles = 0;
+
+        // Knowledge Points Definition
+        const knowledgePoints = [
+            "（11）选定五种疾病相关医学基础（解剖、生理等）",
+            "（12）选定五种疾病相关临床检验所代表的临床意义",
+            "（13）选定五种疾病临床表现",
+            "（14）选定五种疾病疾病诊断",
+            "（15）选定五种疾病疾病治疗",
+            "（16）药物适应症、禁忌证",
+            "（17）药代、药效",
+            "（18）个体化给药方案的制定",
+            "（19）药物不良反应",
+            "（20）药物相互作用",
+            "（21）个体化药学监护计划的制定",
+            "（22）个体化用药教育方案的设计"
+        ];
+
+        // UI References
+        const kpContainer = document.getElementById('kpContainer');
+        
+        // Init Knowledge Points UI
+        function initKnowledgePoints() {
+            kpContainer.innerHTML = '';
+            knowledgePoints.forEach((kp, index) => {
+                const label = document.createElement('label');
+                label.className = "flex items-start cursor-pointer group";
+                label.innerHTML = `
+                    <input type="checkbox" class="kp-checkbox hidden" value="${kp}" checked>
+                    <div class="w-full border border-gray-200 bg-white p-2 rounded text-xs text-gray-600 flex items-center hover:border-indigo-300 transition-colors">
+                        <i class="fa-solid fa-check text-indigo-600 mr-2 opacity-0 transition-opacity"></i>
+                        <span class="flex-1">${kp}</span>
+                    </div>
+                `;
+                kpContainer.appendChild(label);
+            });
+        }
+        initKnowledgePoints();
+
+        function toggleAllKP() {
+            const checkboxes = document.querySelectorAll('.kp-checkbox');
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            checkboxes.forEach(cb => cb.checked = !allChecked);
+        }
+
+        // Toggle Model Select
+        function toggleModelSelect() {
+            const provider = document.getElementById('apiProvider').value;
+            const geminiSelect = document.getElementById('geminiModelSelect');
+            const customConfig = document.getElementById('customConfig');
+            geminiSelect.classList.add('hidden');
+            customConfig.classList.add('hidden');
+            if (provider === 'gemini') geminiSelect.classList.remove('hidden');
+            else if (provider === 'custom') customConfig.classList.remove('hidden');
+        }
+
+        // --- File Handling ---
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const uploadStatus = document.getElementById('uploadStatus');
+        const markdownOutput = document.getElementById('markdownOutput');
+        const placeholder = document.getElementById('placeholder');
+        const generateBtn = document.getElementById('generateBtn');
+
+        fileInput.addEventListener('change', async (event) => {
+            const files = event.target.files;
+            if (files.length === 0) return;
+            totalFiles = files.length;
+            filesProcessed = 0;
+            extractedText = "";
+            fileList.innerHTML = '';
+            uploadStatus.classList.remove('hidden');
+            generateBtn.disabled = true;
+
+            for (let file of files) {
+                const div = document.createElement('div');
+                div.className = "flex items-center justify-between bg-gray-50 p-2 rounded border border-gray-100";
+                div.innerHTML = `<span class="truncate w-4/5 text-gray-700 text-xs"><i class="fa-solid fa-file-pdf text-red-500 mr-2"></i>${file.name}</span><i class="fa-solid fa-spinner fa-spin text-gray-400 text-xs"></i>`;
+                fileList.appendChild(div);
+                try {
+                    const text = await parsePdf(file);
+                    extractedText += `\n\n=== 知识库: ${file.name} ===\n${text}\n=====================\n`;
+                    div.querySelector('.fa-spinner').className = "fa-solid fa-check text-green-500";
+                } catch (e) {
+                    console.error(e);
+                    div.querySelector('.fa-spinner').className = "fa-solid fa-triangle-exclamation text-red-500";
+                }
+                filesProcessed++;
+            }
+            uploadStatus.textContent = "知识库解析完成";
+            generateBtn.disabled = false;
+        });
+
+        async function parsePdf(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            let fullText = "";
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map(item => item.str).join(' ');
+                fullText += pageText + "\n";
+            }
+            return fullText;
+        }
+
+        // --- Generation Logic ---
+        async function generateExam() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            if (!apiKey) { alert("请输入 API Key"); return; }
+            if (!extractedText) { alert("请上传PDF"); return; }
+
+            // Get Config
+            const config = {
+                A: document.getElementById('countA').value,
+                B: document.getElementById('countB').value,
+                X: document.getElementById('countX').value,
+                Case: document.getElementById('countCase').value,
+                Title: document.getElementById('examTitle').value
+            };
+
+            // Get Selected Knowledge Points
+            const selectedKPs = Array.from(document.querySelectorAll('.kp-checkbox:checked')).map(cb => cb.value);
+            if (selectedKPs.length === 0) { alert("请至少选择一个考点"); return; }
+
+            // UI Loading
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = `<div class="loader mr-2"></div> 正在生成...`;
+            placeholder.classList.add('hidden');
+            markdownOutput.innerHTML = `<div class="flex flex-col items-center justify-center pt-20 text-gray-500"><div class="loader mb-4" style="width:48px;height:48px;border-width:6px"></div><p>正在综合分析知识库...</p><p class="text-xs mt-2">匹配选定的 ${selectedKPs.length} 个考点...</p></div>`;
+
+            const systemPrompt = `你是一个专业的临床药师考试命题专家。
+            
+            **【核心任务】**：
+            用户导入的所有文件内容构成了本次考试的**【专属知识库】**。你需要综合阅读并理解知识库中的所有信息，生成一份严格符合《20180628出题格式》的试卷。
+            
+            **【本次考试指定考点范围】**：
+            请**仅从**以下用户勾选的知识点范围内进行出题，并确保试题覆盖了这些维度的重点内容：
+            ${selectedKPs.join('\n')}
+
+            **【内容来源铁律】**：
+            1. **严格溯源**：所有的考点、病例数据、药物选择依据、治疗原则，**必须严格来源于用户提供的【知识库内容】**。
+            2. **综合出题**：如果用户上传了多份文件，请尝试在试卷中综合涵盖这些文件中的重点内容。
+            3. **禁止幻觉**：不要编造知识库中不存在的“事实”。
+
+            **【内容深度要求】**：
+            1. **药学监护核心**：重点考核药物选择、用法用量(含溶媒/滴速)、剂型适宜性、方案优化、循证医学、ADR处理、患者教育。
+            2. **复杂病例**：严重的药物相互作用、特殊人群（肝肾功能不全、老年、儿童、妊娠）、高危药品（抗凝、化疗、精麻）、特殊剂型（缓控释、吸入剂）的临床应用。
+        
+            **【格式强制规范】**：
+            1. **考点标注**：每道题（含案例小题）末尾必须标注考点，必须完全匹配上述列表中的文本。格式：...题干...（  ）*【（15）选定五种疾病疾病治疗】*
+            2. **题目序号与格式**：
+               - **必须**给每一个题目加上序号。例如：**1.**、**2.**。
+               - 案例分析题的小题也要编号，例如：**1.**、**2.**。        
+           3. **题型结构**：
+               - A型题 (单选, 5选项, 叙述式案例, 否定词**加粗**)。
+               - B型题 (配伍, 5选项在前, 引导句放在备选答案与题干之间的用以说明两者的关系,题干在后)。
+               - X型题 (多选, 5选项,叙述式案例, 否定词**加粗**)。
+               - 案例题 (每案例>=5小题, 每题4选项)。
+           3. **题型设计规范**：
+               - **A型题 (最佳选择题)**：
+                 - **题干要求**：必须采用**临床案例摘要**，以**叙述式**书写（禁止简单的知识点问答）。
+                 - **表述要求**：尽可能采用**肯定性陈述句**。
+                 - **否定词处理**：如果必须采用否定性陈述（如“不包括”、“不宜”），其否定词必须用 **Markdown加粗**（如 **不**）以提醒应试者。
+                 - **选项要求**：每题5个选项，单选。
+               - **X型题**：
+                 - **题干要求**：必须采用**临床案例摘要**，以**叙述式**书写（禁止简单的知识点问答）。
+                 - **表述要求**：尽可能采用**肯定性陈述句**。
+                 - **否定词处理**：如果必须采用否定性陈述（如“不包括”、“不宜”），其否定词必须用 **Markdown加粗**（如 **不**）以提醒应试者。
+                 - **选项要求**：每题5个选项，多选。
+               - **B型题**：先列**5个选项**(A~E)，然后列出2-3个题干。
+                 - **题干要求**：必须采用**临床案例摘要**，以**叙述式**书写（禁止简单的知识点问答）。
+                 - **表述要求**：尽可能采用**肯定性陈述句**。
+                 - **否定词处理**：如果必须采用否定性陈述（如“不包括”、“不宜”），其否定词必须用 **Markdown加粗**（如 **不**）以提醒应试者。
+                 - **选项要求**：每题5个选项，单选。
+               - **案例分析题**：
+                 - **题干要求**：必须采用**临床案例摘要**，以**叙述式**书写（禁止简单的知识点问答）。
+                 - **表述要求**：尽可能采用**肯定性陈述句**。
+                 - **否定词处理**：如果必须采用否定性陈述（如“不包括”、“不宜”），其否定词必须用 **Markdown加粗**（如 **不**）以提醒应试者。
+                 - **选项要求**：每个案例设计**不少于5个问题**。每个问题设计**4个选项**，可单选或多选。
+            4. **排版**：
+               - # ${config.Title}
+               - **姓名：______ 科室：______ 分数：______**
+               - ## 一、A型题（...共${config.A}题）
+               - ## 二、B型题（...共${config.B}组）
+               - ## 三、X型题（...共${config.X}题）
+               - ## 四、案例分析题（...共${config.Case}个案例）
+               - (每题后面) # 参考答案
+            4. **排版**：
+           - # ${config.Title}  
+           - **姓名：______ 科室：______ 分数：______**
+           - ---
+           - ## 一、A型题（...共${config.A}题）
+           - [按顺序生成题目]
+               - > **参考答案**：[答案]
+               - > **解析**：[关键知识点解析]
+           - ## 二、B型题（...共${config.B}组）
+           - [按顺序生成题目]
+              - > **参考答案**：[答案]
+          - ## 三、X型题（...共${config.X}题）
+         - [按顺序生成题目]
+              - > **参考答案**：[答案]
+          - ## 四、案例分析题（...共${config.Case}个案例）
+          - [案例描述]
+          - [问题]
+              - > **参考答案与评分要点**：
+             - > 1. [关键点1]（2分）
+             - > 2. [关键点2]（3分）
+            **生成数量**：A型${config.A}题, B型${config.B}组, X型${config.X}题, 案例${config.Case}个。
+            `;
+
+            const userPrompt = `【知识库内容】：\n${extractedText.substring(0, 70000)}`; 
+
+            try {
+                const provider = document.getElementById('apiProvider').value;
+                let result = "";
+                
+                if (provider === 'gemini') {
+                    const model = document.getElementById('geminiModelId').value;
+                    result = await callGemini(apiKey, model, systemPrompt, userPrompt);
+                } else if (provider === 'openai') {
+                    result = await callOpenAI(apiKey, 'https://api.openai.com/v1', 'gpt-4-turbo', systemPrompt, userPrompt);
+                } else {
+                    const url = document.getElementById('customBaseUrl').value.replace(/\/$/, "");
+                    const model = document.getElementById('customModelId').value;
+                    result = await callOpenAI(apiKey, url, model, systemPrompt, userPrompt);
+                }
+                renderResult(result);
+            } catch (error) {
+                console.error(error);
+                alert("生成失败: " + error.message);
+                markdownOutput.innerHTML = `<div class="text-center text-red-500 p-8">生成出错: ${error.message}</div>`;
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> 基于选定考点生成`;
+            }
+        }
+
+        // API Calls
+        async function callGemini(key, model, system, user) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+            const response = await fetch(url, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: system + "\n\n" + user }] }] })
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error?.message || response.statusText);
+            return data.candidates[0].content.parts[0].text;
+        }
+
+        async function callOpenAI(key, baseUrl, model, system, user) {
+            const response = await fetch(`${baseUrl}/chat/completions`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+                body: JSON.stringify({ model: model, messages: [{ role: "system", content: system }, { role: "user", content: user }] })
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error?.message || "Network Error");
+            return data.choices[0].message.content;
+        }
+
+        function renderResult(markdown) {
+            markdownOutput.innerHTML = marked.parse(markdown);
+            // Post-process styles
+            markdownOutput.querySelectorAll('em').forEach(em => {
+                if(em.innerText.includes('【')) em.className = 'knowledge-point';
+            });
+            markdownOutput.querySelectorAll('p').forEach(p => {
+                if(p.innerText.includes('姓名：')) p.className = 'exam-header-info';
+            });
+            markdownOutput.querySelectorAll('h1').forEach(h1 => {
+                if(h1.innerText.includes('参考答案')) {
+                    h1.style.color = '#dc2626'; h1.style.marginTop = '40px'; h1.style.borderTop = '2px dashed #ccc'; h1.style.paddingTop = '20px';
+                }
+            });
+        }
+
+        function printExam() { window.print(); }
+        function exportToWord() {
+            const content = document.getElementById('markdownOutput').innerText;
+            if (!content) return alert("无内容");
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `${document.getElementById('examTitle').value}.md`;
+            a.click();
+        }
+    </script>
+</body>
+</html>
