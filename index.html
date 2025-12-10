@@ -433,7 +433,7 @@
             
             // Limit strategy
             const provider = document.getElementById('apiProvider').value;
-            const limit = provider === 'gemini' ? 800000 : 60000; // Adjusted for safety
+            const limit = provider === 'gemini' ? 2000000 : 60000; // Adjusted for safety
             
             // Run optimize logic (using selectedKPs variable)
             const context = optimizeContext(extractedChunks, selectedKPs, limit);
