@@ -3,395 +3,424 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>临床药师理论试题智能生成器 v3.0</title>
+    <title>临床药师理论试题智能生成器 v4.1 (修复版)</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- PDF.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     </script>
+    <!-- Markdown Parser -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.2/marked.min.js"></script>
+    <!-- Icons -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
 
-        body { 
-            font-family: 'Noto Sans SC', sans-serif; 
-            background-color: #f3f4f6;
-        }
+        body { font-family: 'Noto Sans SC', sans-serif; background-color: #f3f4f6; }
 
-        /* ---------------- 试卷纸张效果 CSS ---------------- */
+        /* Paper Style */
         .paper-container {
-            background-color: white;
-            width: 210mm; 
-            min-height: 297mm; 
-            margin: 0 auto;
-            padding: 20mm;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            color: #000;
-            font-family: 'Noto Serif SC', 'SimSun', serif; 
-            line-height: 1.6;
+            background-color: white; width: 210mm; min-height: 297mm; margin: 0 auto; padding: 20mm;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); color: #000;
+            font-family: 'Noto Serif SC', 'SimSun', serif; line-height: 1.6;
         }
 
-        .exam-content h1 {
-            font-size: 24px;
-            font-weight: 700;
-            text-align: center;
-            margin-bottom: 10px;
-            color: #000;
-            page-break-before: always;
-        }
-        .exam-content h1:first-child {
-            page-break-before: auto;
-        }
-
-        .exam-content .exam-header-info {
-            text-align: center;
-            margin-bottom: 30px;
-            font-family: 'Noto Sans SC', sans-serif;
-            font-size: 14px;
-            border-bottom: 2px solid #000;
-            padding-bottom: 15px;
-        }
-
-        .exam-content h2 {
-            font-size: 18px;
-            font-weight: 700;
-            margin-top: 25px;
-            margin-bottom: 15px;
-            padding: 5px 10px;
-            background-color: #f0f0f0;
-            border-left: 5px solid #4b5563;
-        }
-
-        .exam-content h3 {
-            font-size: 16px;
-            font-weight: 600;
-            margin-top: 20px;
-            margin-bottom: 10px;
-        }
-
-        .exam-content p {
-            margin-bottom: 10px;
-            text-align: justify;
-        }
-
-        .exam-content ul {
-            list-style-type: none;
-            padding-left: 0;
-            margin-bottom: 15px;
-        }
+        /* Markdown Content Styling */
+        .exam-content h1 { font-size: 24px; font-weight: 700; text-align: center; margin-bottom: 10px; page-break-before: always; }
+        .exam-content h1:first-child { page-break-before: auto; }
+        .exam-content .exam-header-info { text-align: center; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 30px; font-family: sans-serif; font-size: 14px; }
+        .exam-content h2 { font-size: 18px; font-weight: 700; margin-top: 25px; background-color: #f0f0f0; border-left: 5px solid #4b5563; padding: 5px 10px; }
+        .exam-content p { margin-bottom: 10px; text-align: justify; }
         
-        .exam-content li {
-            padding-left: 20px;
-            text-indent: -20px; 
-            margin-bottom: 5px;
-        }
-
-        .exam-content strong {
-            font-weight: 800;
-            text-decoration: underline; 
-        }
-
-        .knowledge-point {
-            font-size: 0.9em;
-            color: #666;
-            font-family: 'Noto Sans SC', sans-serif;
-            float: right;
-        }
-
-        .answer-section {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 2px dashed #ccc;
-        }
-
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3b82f6;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        /* Checkbox Style */
-        .kp-checkbox:checked + div {
-            background-color: #eff6ff;
-            border-color: #3b82f6;
-            color: #1e40af;
-        }
-        .kp-checkbox:checked + div i {
-            opacity: 1;
-        }
+        /* Table Support */
+        .exam-content table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 0.9em; page-break-inside: avoid; }
+        .exam-content th, .exam-content td { border: 1px solid #333; padding: 6px; }
+        .exam-content th { background-color: #e5e7eb; font-weight: bold; }
+        
+        .knowledge-point { font-size: 0.9em; color: #666; font-family: sans-serif; float: right; font-style: italic; }
+        
+        /* Utility */
+        .kp-checkbox:checked + div { background-color: #eff6ff; border-color: #3b82f6; color: #1e40af; }
 
         @media print {
             body * { visibility: hidden; }
             #previewContainer, #previewContainer * { visibility: visible; }
-            #previewContainer {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-                margin: 0;
-                padding: 0;
-                box-shadow: none;
-            }
+            #previewContainer { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 0; box-shadow: none; }
             aside, header { display: none; }
         }
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden">
 
-    <!-- Header -->
     <header class="bg-white shadow-sm z-20 border-b border-gray-200">
         <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center space-x-3">
-                <div class="bg-indigo-600 text-white p-2 rounded-lg shadow-sm">
-                    <i class="fa-solid fa-graduation-cap"></i>
-                </div>
+                <div class="bg-indigo-600 text-white p-2 rounded-lg shadow-sm"><i class="fa-solid fa-bolt"></i></div>
                 <div>
                     <h1 class="text-lg font-bold text-gray-900 leading-tight">临床药师试题生成器</h1>
-                    <p class="text-xs text-gray-500">v3.0  | 支持 Gemini/DeepSeek</p>
+                    <p class="text-xs text-gray-500">v4.1 修复版 | 修复了变量引用错误</p>
                 </div>
             </div>
             <div class="flex space-x-3">
-                <button onclick="printExam()" class="px-3 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm flex items-center gap-2 transition">
-                    <i class="fa-solid fa-print"></i> 打印预览
-                </button>
-                <button onclick="exportToWord()" class="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm flex items-center gap-2 transition">
-                    <i class="fa-solid fa-file-word"></i> 导出Word
-                </button>
+                <button onclick="printExam()" class="px-3 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm flex items-center gap-2"><i class="fa-solid fa-print"></i> 打印</button>
+                <button onclick="exportToWord()" class="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm flex items-center gap-2"><i class="fa-solid fa-file-word"></i> 导出</button>
             </div>
         </div>
     </header>
 
-    <!-- Main Content -->
     <main class="flex-1 flex overflow-hidden">
-        
-        <!-- Left Sidebar: Configuration -->
         <aside class="w-1/3 bg-white border-r border-gray-200 flex flex-col overflow-y-auto shadow-inner z-10">
             <div class="p-6 space-y-6">
                 
-                <!-- API Key Section -->
                 <div class="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
-                    <label class="block text-sm font-bold text-indigo-900 mb-2">
-                        <i class="fa-solid fa-key mr-1"></i> 模型设置
-                    </label>
-                    
-                    <select id="apiProvider" onchange="toggleModelSelect()" class="w-full mb-2 text-sm border-gray-300 rounded-md shadow-sm p-2 border focus:ring-2 focus:ring-indigo-500">
-                        <option value="gemini">Google Gemini (推荐)</option>
-                        <option value="custom">SiliconFlow / 自定义 (OpenAI兼容)</option>
+                    <label class="block text-sm font-bold text-indigo-900 mb-2"><i class="fa-solid fa-brain mr-1"></i> 模型设置</label>
+                    <select id="apiProvider" onchange="toggleModelSelect()" class="w-full mb-2 text-sm border-gray-300 rounded-md p-2 border">
+                        <option value="gemini">Google Gemini (长文本推荐)</option>
+                        <option value="custom">SiliconFlow/DeepSeek (OpenAI兼容)</option>
                         <option value="openai">OpenAI (官方)</option>
                     </select>
-
-                    <!-- Gemini Options -->
                     <div id="geminiModelSelect" class="mb-2">
-                        <select id="geminiModelId" class="w-full text-sm border-gray-300 rounded-md shadow-sm p-2 border focus:ring-2 focus:ring-indigo-500">
-                            <option value="gemini-2.5-flash-preview-09-2025">gemini-2.5-flash (最新)</option>
-                            <option value="gemini-1.5-pro">gemini-1.5-pro (推理强)</option>
-                            <option value="gemini-1.5-flash">gemini-1.5-flash (稳定)</option>
+                        <select id="geminiModelId" class="w-full text-sm border-gray-300 rounded-md p-2 border">
+                            <option value="gemini-2.5-flash-preview-09-2025">gemini-2.5-flash (超长窗)</option>
+                            <option value="gemini-1.5-pro">gemini-1.5-pro (强推理)</option>
                         </select>
                     </div>
-
-                    <!-- Custom Options -->
                     <div id="customConfig" class="mb-2 hidden space-y-2 border-l-2 border-indigo-300 pl-2">
-                        <div>
-                            <label class="block text-[10px] text-gray-500">Base URL</label>
-                            <input type="text" id="customBaseUrl" value="https://api.siliconflow.cn/v1" placeholder="https://api.siliconflow.cn/v1" class="w-full text-xs border-gray-300 rounded-md p-1 border">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] text-gray-500">Model ID</label>
-                            <input type="text" id="customModelId" value="deepseek-ai/DeepSeek-V3" placeholder="例如: deepseek-ai/DeepSeek-V3" class="w-full text-xs border-gray-300 rounded-md p-1 border">
-                        </div>
+                        <input type="text" id="customBaseUrl" value="https://api.siliconflow.cn/v1" placeholder="Base URL" class="w-full text-xs border-gray-300 rounded p-1 border">
+                        <input type="text" id="customModelId" value="deepseek-ai/DeepSeek-V3" placeholder="Model ID" class="w-full text-xs border-gray-300 rounded p-1 border">
                     </div>
-
-                    <input type="password" id="apiKey" placeholder="输入 API Key (sk-...)" class="w-full text-sm border-gray-300 rounded-md shadow-sm p-2 border focus:ring-2 focus:ring-indigo-500">
+                    <input type="password" id="apiKey" placeholder="输入 API Key" class="w-full text-sm border-gray-300 rounded-md p-2 border">
                 </div>
 
-                <!-- Step 1: Upload -->
                 <div>
                     <h2 class="text-sm font-bold text-gray-700 mb-3 flex items-center">
                         <span class="bg-gray-200 text-gray-700 rounded-full w-5 h-5 flex items-center justify-center text-xs mr-2">1</span>
-                        导入知识库 (PDF)
+                        导入知识库
                     </h2>
+                    
                     <div id="dropZone" class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:bg-gray-50 transition-colors cursor-pointer relative group">
-                        <input type="file" id="fileInput" multiple accept=".pdf" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
-                        <i class="fa-solid fa-book-medical text-3xl text-gray-400 mb-2 group-hover:text-indigo-500 transition"></i>
-                        <p class="text-sm text-gray-600">点击或拖拽上传</p>
+                        <input type="file" id="fileInput" multiple accept=".pdf, .md, .json, .txt" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                        <div class="space-y-1">
+                            <i class="fa-solid fa-cloud-arrow-up text-3xl text-gray-400 group-hover:text-indigo-500 transition"></i>
+                            <p class="text-sm font-medium text-gray-700">点击或拖拽文件</p>
+                            <p class="text-xs text-gray-500">PDF(极速解析), MD, JSON</p>
+                        </div>
                     </div>
+
+                    <div id="pdfSettings" class="hidden mt-2 bg-gray-50 p-2 rounded border border-gray-200">
+                        <label class="block text-xs font-semibold text-gray-500 mb-1">PDF 解析方式</label>
+                        <select id="parsingEngine" onchange="toggleParserConfig()" class="w-full text-xs border-gray-300 rounded p-1 border">
+                            <option value="pdfjs">⚡ 本地极速 (PDF.js 多线程)</option>
+                            <option value="mineru_api">🧠 Mineru API (保留表格结构)</option>
+                        </select>
+                        <div id="mineruConfig" class="hidden mt-2 pt-2 border-t border-gray-200 space-y-1">
+                            <input type="text" id="mineruUrl" placeholder="API URL" class="w-full text-xs border-gray-300 rounded p-1 border">
+                        </div>
+                    </div>
+
                     <div id="fileList" class="mt-3 space-y-2 text-sm"></div>
-                    <div id="uploadStatus" class="mt-2 text-xs text-gray-500 hidden">解析中...</div>
+                    
+                    <!-- Stats Display (New) -->
+                    <div class="flex justify-between items-center mt-2 px-1">
+                        <span class="text-xs text-gray-500" id="fileCountDisplay">未选择文件</span>
+                        <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded" id="charCountDisplay">0 字符</span>
+                    </div>
+
+                    <!-- Status Bar -->
+                    <div id="progressContainer" class="hidden mt-2">
+                        <div class="w-full bg-gray-200 rounded-full h-1.5 mb-1">
+                            <div id="progressBar" class="bg-indigo-600 h-1.5 rounded-full" style="width: 0%"></div>
+                        </div>
+                        <p id="uploadStatus" class="text-xs text-indigo-600 font-medium"></p>
+                    </div>
                 </div>
 
-                <!-- Step 2: Exam Config -->
                 <div>
                     <h2 class="text-sm font-bold text-gray-700 mb-3 flex items-center">
                         <span class="bg-gray-200 text-gray-700 rounded-full w-5 h-5 flex items-center justify-center text-xs mr-2">2</span>
-                        试卷设置
+                        试卷结构
                     </h2>
-                    <div class="space-y-3">
-                        <div>
-                            <label class="block text-xs text-gray-500 mb-1">试卷主标题</label>
-                            <input type="text" id="examTitle" value="2025年临床药师规范化培训专业考核试卷" class="w-full text-sm border-gray-300 rounded-md p-2 border focus:ring-2 focus:ring-indigo-500">
-                        </div>
-                        <div class="grid grid-cols-2 gap-2 bg-gray-50 p-2 rounded border">
-                            <div><label class="text-xs">A型题(单)</label><input type="number" id="countA" value="5" min="0" class="w-full text-xs p-1 border rounded"></div>
-                            <div><label class="text-xs">B型题(组)</label><input type="number" id="countB" value="1" min="0" class="w-full text-xs p-1 border rounded"></div>
-                            <div><label class="text-xs">X型题(多)</label><input type="number" id="countX" value="2" min="0" class="w-full text-xs p-1 border rounded"></div>
-                            <div><label class="text-xs">案例题(个)</label><input type="number" id="countCase" value="1" min="0" class="w-full text-xs p-1 border rounded"></div>
-                        </div>
+                    <input type="text" id="examTitle" value="2025年临床药师规范化培训专业考核试卷" class="w-full text-sm border-gray-300 rounded-md p-2 border mb-2">
+                    <div class="grid grid-cols-4 gap-2 text-center">
+                        <div><label class="text-[10px] text-gray-500">A型</label><input type="number" id="countA" value="5" class="w-full text-xs p-1 border rounded text-center"></div>
+                        <div><label class="text-[10px] text-gray-500">B型</label><input type="number" id="countB" value="1" class="w-full text-xs p-1 border rounded text-center"></div>
+                        <div><label class="text-[10px] text-gray-500">X型</label><input type="number" id="countX" value="2" class="w-full text-xs p-1 border rounded text-center"></div>
+                        <div><label class="text-[10px] text-gray-500">案例</label><input type="number" id="countCase" value="1" class="w-full text-xs p-1 border rounded text-center"></div>
                     </div>
                 </div>
 
-                <!-- Step 3: Knowledge Points (New) -->
-                <div>
+                <div class="flex-1 overflow-hidden flex flex-col">
                     <h2 class="text-sm font-bold text-gray-700 mb-2 flex items-center justify-between">
-                        <span class="flex items-center"><span class="bg-gray-200 text-gray-700 rounded-full w-5 h-5 flex items-center justify-center text-xs mr-2">3</span>考点覆盖配置</span>
-                        <button onclick="toggleAllKP()" class="text-xs text-indigo-600 hover:underline">全选/反选</button>
+                        <span class="flex items-center"><span class="bg-gray-200 text-gray-700 rounded-full w-5 h-5 flex items-center justify-center text-xs mr-2">3</span>考点</span>
+                        <button onclick="toggleAllKP()" class="text-xs text-indigo-600">全选</button>
                     </h2>
-                    <div class="bg-gray-50 border border-gray-200 rounded-lg h-40 overflow-y-auto p-2 space-y-1" id="kpContainer">
-                        <!-- Generated via JS -->
-                    </div>
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg flex-1 overflow-y-auto p-2 space-y-1" id="kpContainer"></div>
                 </div>
 
-                <button id="generateBtn" onclick="generateExam()" class="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 font-bold shadow-md transform transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2">
-                    <i class="fa-solid fa-wand-magic-sparkles"></i> 基于选定考点生成
+                <button id="generateBtn" onclick="generateExam()" class="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 font-bold shadow-md mt-4 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> 开始生成试卷
                 </button>
             </div>
         </aside>
 
-        <!-- Right Preview Area -->
         <main class="w-2/3 bg-gray-200 p-8 overflow-y-auto flex justify-center">
             <div id="previewContainer" class="paper-container exam-content relative">
                 <div id="placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-gray-400 z-0">
-                    <i class="fa-solid fa-clipboard-list text-6xl mb-4 opacity-30"></i>
-                    <p class="text-lg font-serif">配置完成请点击生成</p>
-                    <p class="text-sm opacity-60">将根据勾选的考点出题</p>
+                    <i class="fa-solid fa-bolt text-6xl mb-4 opacity-30"></i>
+                    <p class="text-lg font-serif">请导入知识库</p>
+                    <p class="text-sm opacity-60">已启用多线程并行解析，速度提升明显</p>
                 </div>
                 <div id="markdownOutput" class="relative z-10 min-h-[500px]"></div>
             </div>
         </main>
-
     </main>
 
     <script>
-        // State
-        let extractedText = "";
-        let filesProcessed = 0;
-        let totalFiles = 0;
-
-        // Knowledge Points Definition
+        // --- Init & Data ---
+        // Use an array to store text chunks instead of one giant string to reduce memory thrashing during appends
+        let extractedChunks = []; 
+        
         const knowledgePoints = [
-            "（11）选定五种疾病相关医学基础（解剖、生理等）",
-            "（12）选定五种疾病相关临床检验所代表的临床意义",
-            "（13）选定五种疾病临床表现",
-            "（14）选定五种疾病疾病诊断",
-            "（15）选定五种疾病疾病治疗",
-            "（16）药物适应症、禁忌证",
-            "（17）药代、药效",
-            "（18）个体化给药方案的制定",
-            "（19）药物不良反应",
-            "（20）药物相互作用",
-            "（21）个体化药学监护计划的制定",
-            "（22）个体化用药教育方案的设计"
+            "（11）医学基础（解剖、生理）", "（12）临床检验意义", "（13）临床表现", "（14）疾病诊断",
+            "（15）疾病治疗原则", "（16）药物适应症/禁忌证", "（17）药代/药效动力学", "（18）个体化给药方案",
+            "（19）药物不良反应(ADR)", "（20）药物相互作用", "（21）药学监护计划", "（22）患者用药教育"
         ];
 
-        // UI References
-        const kpContainer = document.getElementById('kpContainer');
-        
-        // Init Knowledge Points UI
-        function initKnowledgePoints() {
-            kpContainer.innerHTML = '';
-            knowledgePoints.forEach((kp, index) => {
-                const label = document.createElement('label');
-                label.className = "flex items-start cursor-pointer group";
-                label.innerHTML = `
-                    <input type="checkbox" class="kp-checkbox hidden" value="${kp}" checked>
-                    <div class="w-full border border-gray-200 bg-white p-2 rounded text-xs text-gray-600 flex items-center hover:border-indigo-300 transition-colors">
-                        <i class="fa-solid fa-check text-indigo-600 mr-2 opacity-0 transition-opacity"></i>
-                        <span class="flex-1">${kp}</span>
+        function initKP() {
+            const c = document.getElementById('kpContainer');
+            c.innerHTML = knowledgePoints.map(k => `
+                <label class="flex items-start cursor-pointer group">
+                    <input type="checkbox" class="kp-checkbox hidden" value="${k}" checked>
+                    <div class="w-full border border-gray-200 bg-white p-2 rounded text-xs text-gray-600 flex items-center hover:border-indigo-300">
+                        <i class="fa-solid fa-check text-indigo-600 mr-2 opacity-0"></i><span class="flex-1">${k}</span>
                     </div>
-                `;
-                kpContainer.appendChild(label);
-            });
+                </label>`).join('');
         }
-        initKnowledgePoints();
-
-        function toggleAllKP() {
-            const checkboxes = document.querySelectorAll('.kp-checkbox');
-            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
-            checkboxes.forEach(cb => cb.checked = !allChecked);
-        }
-
-        // Toggle Model Select
+        initKP();
+        function toggleAllKP() { document.querySelectorAll('.kp-checkbox').forEach(c => c.checked = !c.checked); }
         function toggleModelSelect() {
-            const provider = document.getElementById('apiProvider').value;
-            const geminiSelect = document.getElementById('geminiModelSelect');
-            const customConfig = document.getElementById('customConfig');
-            geminiSelect.classList.add('hidden');
-            customConfig.classList.add('hidden');
-            if (provider === 'gemini') geminiSelect.classList.remove('hidden');
-            else if (provider === 'custom') customConfig.classList.remove('hidden');
+            const v = document.getElementById('apiProvider').value;
+            document.getElementById('geminiModelSelect').classList.toggle('hidden', v !== 'gemini');
+            document.getElementById('customConfig').classList.toggle('hidden', v !== 'custom');
+        }
+        function toggleParserConfig() {
+            document.getElementById('mineruConfig').classList.toggle('hidden', document.getElementById('parsingEngine').value !== 'mineru_api');
         }
 
-        // --- File Handling ---
+        // --- Optimized File Parsing ---
         const fileInput = document.getElementById('fileInput');
         const fileList = document.getElementById('fileList');
         const uploadStatus = document.getElementById('uploadStatus');
-        const markdownOutput = document.getElementById('markdownOutput');
-        const placeholder = document.getElementById('placeholder');
-        const generateBtn = document.getElementById('generateBtn');
-
-        fileInput.addEventListener('change', async (event) => {
-            const files = event.target.files;
-            if (files.length === 0) return;
-            totalFiles = files.length;
-            filesProcessed = 0;
-            extractedText = "";
-            fileList.innerHTML = '';
-            uploadStatus.classList.remove('hidden');
-            generateBtn.disabled = true;
-
-            for (let file of files) {
-                const div = document.createElement('div');
-                div.className = "flex items-center justify-between bg-gray-50 p-2 rounded border border-gray-100";
-                div.innerHTML = `<span class="truncate w-4/5 text-gray-700 text-xs"><i class="fa-solid fa-file-pdf text-red-500 mr-2"></i>${file.name}</span><i class="fa-solid fa-spinner fa-spin text-gray-400 text-xs"></i>`;
-                fileList.appendChild(div);
-                try {
-                    const text = await parsePdf(file);
-                    extractedText += `\n\n=== 知识库: ${file.name} ===\n${text}\n=====================\n`;
-                    div.querySelector('.fa-spinner').className = "fa-solid fa-check text-green-500";
-                } catch (e) {
-                    console.error(e);
-                    div.querySelector('.fa-spinner').className = "fa-solid fa-triangle-exclamation text-red-500";
-                }
-                filesProcessed++;
-            }
-            uploadStatus.textContent = "知识库解析完成";
-            generateBtn.disabled = false;
-        });
-
-        async function parsePdf(file) {
-            const arrayBuffer = await file.arrayBuffer();
-            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-            let fullText = "";
-            for (let i = 1; i <= pdf.numPages; i++) {
-                const page = await pdf.getPage(i);
-                const textContent = await page.getTextContent();
-                const pageText = textContent.items.map(item => item.str).join(' ');
-                fullText += pageText + "\n";
-            }
-            return fullText;
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        
+        // Helper to update UI
+        function setProgress(percent, msg) {
+            progressContainer.classList.remove('hidden');
+            progressBar.style.width = `${percent}%`;
+            if(msg) uploadStatus.textContent = msg;
         }
 
-        // --- Generation Logic ---
-        async function generateExam() {
-            const apiKey = document.getElementById('apiKey').value.trim();
-            if (!apiKey) { alert("请输入 API Key"); return; }
-            if (!extractedText) { alert("请上传PDF"); return; }
+        fileInput.addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            if(!files.length) return;
+            
+            extractedChunks = []; // Reset
+            fileList.innerHTML = "";
+            document.getElementById('fileCountDisplay').textContent = "正在处理...";
+            document.getElementById('charCountDisplay').textContent = "0 字符";
+            document.getElementById('generateBtn').disabled = true;
+            
+            let hasPDF = false;
+            let completed = 0;
 
-            // Get Config
+            for(let file of files) {
+                const ext = file.name.split('.').pop().toLowerCase();
+                if(ext === 'pdf') hasPDF = true;
+
+                const div = document.createElement('div');
+                div.className = "flex items-center justify-between bg-gray-50 p-2 rounded border border-gray-100 text-xs";
+                let icon = ext === 'pdf' ? "fa-file-pdf text-red-500" : (ext === 'md' ? "fa-file-code text-blue-500" : "fa-file");
+                div.innerHTML = `<span class="truncate w-3/4"><i class="fa-solid ${icon} mr-2"></i>${file.name}</span><i class="fa-solid fa-spinner fa-spin text-gray-400 status-icon"></i>`;
+                fileList.appendChild(div);
+
+                // Use setTimeout to allow UI to render before heavy processing
+                await new Promise(r => setTimeout(r, 10));
+
+                try {
+                    let content = "";
+                    setProgress(Math.round((completed / files.length) * 100), `正在解析 ${file.name}...`);
+
+                    if (ext === 'pdf') {
+                        const engine = document.getElementById('parsingEngine').value;
+                        if(engine === 'pdfjs') content = await parsePdfLocal(file);
+                        else content = await parsePdfMineruApi(file);
+                    } else if (ext === 'md' || ext === 'txt') {
+                        content = await parseTextFile(file);
+                    } else if (ext === 'json') {
+                        content = await parseMineruJson(file);
+                    }
+
+                    extractedChunks.push(`\n\n=== 来源: ${file.name} (${ext}) ===\n${content}\n`);
+                    div.querySelector('.status-icon').className = "fa-solid fa-check text-green-500";
+                } catch(err) {
+                    console.error(err);
+                    div.querySelector('.status-icon').className = "fa-solid fa-exclamation-triangle text-red-500";
+                    div.title = err.message;
+                }
+                completed++;
+            }
+
+            document.getElementById('pdfSettings').classList.toggle('hidden', !hasPDF);
+            
+            const totalLength = extractedChunks.reduce((acc, curr) => acc + curr.length, 0);
+            
+            // Update Stats UI
+            document.getElementById('fileCountDisplay').textContent = `已加载 ${files.length} 个文件`;
+            document.getElementById('charCountDisplay').textContent = `${totalLength.toLocaleString()} 字符`;
+
+            setProgress(100, `就绪`);
+            setTimeout(() => progressContainer.classList.add('hidden'), 3000);
+            
+            document.getElementById('generateBtn').disabled = false;
+        });
+
+        // 1. Plain Text
+        function parseTextFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = (e) => reject(e);
+                reader.readAsText(file);
+            });
+        }
+
+        // 2. Mineru JSON
+        async function parseMineruJson(file) {
+            const text = await parseTextFile(file);
+            try {
+                const json = JSON.parse(text);
+                let result = "";
+                if (json.pdf_info && (json.block_info || json.para_blocks)) {
+                    const blocks = json.block_info || json.para_blocks;
+                    // Optimization: Use map+join instead of +=
+                    result = blocks.map(block => {
+                        if (block.lines) return block.lines.map(l => l.spans?.map(s => s.content).join('')).join('\n');
+                        if (block.text) return block.text + "\n";
+                        return "";
+                    }).join('\n');
+                } else {
+                    result = json.markdown || json.content || JSON.stringify(json, null, 2); 
+                }
+                return result || "空内容";
+            } catch (e) { return "JSON 解析失败: " + e.message; }
+        }
+
+        // 3. Optimized PDF Parsing (Parallel)
+        async function parsePdfLocal(file) {
+            const buf = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument(buf).promise;
+            
+            // Optimization: Fetch all pages in parallel using Promise.all
+            // This is significantly faster than await-ing each page in a loop
+            const pagePromises = [];
+            for (let i = 1; i <= pdf.numPages; i++) {
+                pagePromises.push(
+                    pdf.getPage(i).then(page => 
+                        page.getTextContent().then(textContent => 
+                            textContent.items.map(s => s.str).join(' ')
+                        )
+                    )
+                );
+            }
+            
+            const pageTexts = await Promise.all(pagePromises);
+            return pageTexts.join('\n\n');
+        }
+
+        // 4. Remote PDF
+        async function parsePdfMineruApi(file) {
+            const url = document.getElementById('mineruUrl').value;
+            if(!url) throw new Error("需配置 Mineru API URL");
+            const fd = new FormData(); fd.append('file', file);
+            const res = await fetch(url, { method:'POST', body:fd });
+            if(!res.ok) throw new Error("API Error");
+            const data = await res.json();
+            return data.markdown || data.result || JSON.stringify(data);
+        }
+
+        // --- Generator Logic (Algorithm Optimization) ---
+        function optimizeContext(chunksArray, kps, max) {
+            // Join first to get full text, then split by paragraphs
+            // Note: In a real worker, we wouldn't join, but for simplicity we join then split efficiently
+            const fullText = chunksArray.join('\n');
+            if(fullText.length <= max) return fullText;
+
+            const splitChunks = fullText.split(/\n\s*\n/);
+            
+            // Optimization: Create a RegExp once instead of looping string.includes()
+            // Remove special regex chars from KPs first
+            const cleanKPs = kps.map(k => k.replace(/^[（(]\d+[）)]/, '').trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+            const kpRegex = new RegExp(cleanKPs.join('|'), 'i'); // Case insensitive
+
+            // Score chunks
+            const scored = splitChunks.map((c, i) => {
+                let s = 0;
+                // Fast regex check
+                if (kpRegex.test(c)) s += 10; 
+                if (c.includes('|') && c.includes('---')) s += 15; // Prefer tables
+                // Length penalty for tiny fragments
+                if (c.length < 20) s -= 5;
+                return { t: c, s: s, i: i };
+            });
+
+            // Sort by score descending
+            scored.sort((a, b) => b.s - a.s);
+
+            // Select top chunks until limit
+            let resIndices = [];
+            let currentLen = 0;
+            
+            // Always include metadata (first chunk)
+            if(scored.length > 0) {
+                // Find index 0
+                const head = scored.find(x => x.i === 0);
+                if(head) { resIndices.push(0); currentLen += head.t.length; }
+            }
+
+            for(let item of scored) {
+                if(item.i === 0) continue; // Already added
+                if(currentLen + item.t.length > max) break;
+                resIndices.push(item.i);
+                currentLen += item.t.length;
+            }
+
+            // Sort indices to maintain document flow
+            resIndices.sort((a, b) => a - b);
+            
+            return resIndices.map(i => splitChunks[i]).join('\n\n');
+        }
+
+        async function generateExam() {
+            const key = document.getElementById('apiKey').value;
+            if(!key) return alert("请输入 API Key");
+            if(!extractedChunks.length) return alert("请先导入文件");
+
+            const btn = document.getElementById('generateBtn');
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 正在构建 Prompt...`;
+            
+            // Allow UI to update
+            await new Promise(r => setTimeout(r, 50));
+
+            document.getElementById('placeholder').classList.add('hidden');
+            const outputDiv = document.getElementById('markdownOutput');
+            outputDiv.innerHTML = `<div class="p-10 text-center text-gray-500 animate-pulse">正在向 AI 发送数据...<br>这可能需要 30秒 - 2分钟，请耐心等待。</div>`;
+
+            // Config - FIXED VARIABLE NAME HERE
             const config = {
                 A: document.getElementById('countA').value,
                 B: document.getElementById('countB').value,
@@ -399,18 +428,19 @@
                 Case: document.getElementById('countCase').value,
                 Title: document.getElementById('examTitle').value
             };
+            // KP - FIXED VARIABLE NAME HERE
+            const selectedKPs = Array.from(document.querySelectorAll('.kp-checkbox:checked')).map(c=>c.value);
+            
+            // Limit strategy
+            const provider = document.getElementById('apiProvider').value;
+            const limit = provider === 'gemini' ? 800000 : 60000; // Adjusted for safety
+            
+            // Run optimize logic (using selectedKPs variable)
+            const context = optimizeContext(extractedChunks, selectedKPs, limit);
 
-            // Get Selected Knowledge Points
-            const selectedKPs = Array.from(document.querySelectorAll('.kp-checkbox:checked')).map(cb => cb.value);
-            if (selectedKPs.length === 0) { alert("请至少选择一个考点"); return; }
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> AI 思考中...`;
 
-            // UI Loading
-            generateBtn.disabled = true;
-            generateBtn.innerHTML = `<div class="loader mr-2"></div> 正在生成...`;
-            placeholder.classList.add('hidden');
-            markdownOutput.innerHTML = `<div class="flex flex-col items-center justify-center pt-20 text-gray-500"><div class="loader mb-4" style="width:48px;height:48px;border-width:6px"></div><p>正在综合分析知识库...</p><p class="text-xs mt-2">匹配选定的 ${selectedKPs.length} 个考点...</p></div>`;
-
-            const systemPrompt = `你是一个专业的临床药师考试命题专家。
+ const sys = `你是一个专业的临床药师考试命题专家。
             
             **【核心任务】**：
             用户导入的所有文件内容构成了本次考试的**【专属知识库】**。你需要综合阅读并理解知识库中的所有信息，生成一份严格符合《20180628出题格式》的试卷。
@@ -484,86 +514,71 @@
           - ## 四、案例分析题（...共${config.Case}个案例）
           - [案例描述]
           - [问题]
-              - > **参考答案与评分要点**：
-             - > 1. [关键点1]（2分）
-             - > 2. [关键点2]（3分）
+              - > **参考答案**：[答案]
             **生成数量**：A型${config.A}题, B型${config.B}组, X型${config.X}题, 案例${config.Case}个。
             `;
 
-            const userPrompt = `【知识库内容】：\n${extractedText.substring(0, 70000)}`; 
 
             try {
-                const provider = document.getElementById('apiProvider').value;
-                let result = "";
-                
-                if (provider === 'gemini') {
-                    const model = document.getElementById('geminiModelId').value;
-                    result = await callGemini(apiKey, model, systemPrompt, userPrompt);
-                } else if (provider === 'openai') {
-                    result = await callOpenAI(apiKey, 'https://api.openai.com/v1', 'gpt-4-turbo', systemPrompt, userPrompt);
+                let md = "";
+                if(provider === 'gemini') {
+                    md = await callGemini(key, document.getElementById('geminiModelId').value, sys, context);
                 } else {
-                    const url = document.getElementById('customBaseUrl').value.replace(/\/$/, "");
-                    const model = document.getElementById('customModelId').value;
-                    result = await callOpenAI(apiKey, url, model, systemPrompt, userPrompt);
+                    const url = provider==='openai' ? 'https://api.openai.com/v1' : document.getElementById('customBaseUrl').value;
+                    const model = provider==='openai' ? 'gpt-4-turbo' : document.getElementById('customModelId').value;
+                    md = await callOpenAI(key, url, model, sys, context);
                 }
-                renderResult(result);
-            } catch (error) {
-                console.error(error);
-                alert("生成失败: " + error.message);
-                markdownOutput.innerHTML = `<div class="text-center text-red-500 p-8">生成出错: ${error.message}</div>`;
-            } finally {
-                generateBtn.disabled = false;
-                generateBtn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> 基于选定考点生成`;
+                
+                marked.setOptions({ gfm: true, breaks: true });
+                const html = marked.parse(md);
+                outputDiv.innerHTML = html;
+                
+                // Style fix
+                document.querySelectorAll('em').forEach(e => { if(e.innerText.includes('【')) e.className='knowledge-point'; });
+
+            } catch(e) {
+                console.error(e);
+                outputDiv.innerHTML = `<div class="p-4 text-red-500 bg-red-50 rounded border border-red-200">
+                    <h3 class="font-bold">生成出错</h3>
+                    <p>${e.message}</p>
+                    <p class="text-sm mt-2 text-gray-500">
+                        <ul class="list-disc pl-5">
+                            <li>检查 API Key 是否正确</li>
+                            <li>检查网络连接（是否能访问 API 域名）</li>
+                            <li>如果使用 DeepSeek/SiliconFlow，确保模型 ID 正确</li>
+                            <li>尝试减少题目数量</li>
+                        </ul>
+                    </p>
+                </div>`;
             }
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> 开始生成试卷`;
         }
 
-        // API Calls
-        async function callGemini(key, model, system, user) {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
-            const response = await fetch(url, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: system + "\n\n" + user }] }] })
+        // --- API Calls ---
+        async function callGemini(key, model, sys, user) {
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({ contents:[{ role:"user", parts:[{text: sys+"\n\n相关资料:\n"+user}] }] })
             });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error?.message || response.statusText);
-            return data.candidates[0].content.parts[0].text;
+            const d = await res.json();
+            if(!res.ok) throw new Error(d.error?.message||"Gemini API Error");
+            return d.candidates?.[0]?.content?.parts?.[0]?.text || "未生成内容";
         }
-
-        async function callOpenAI(key, baseUrl, model, system, user) {
-            const response = await fetch(`${baseUrl}/chat/completions`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-                body: JSON.stringify({ model: model, messages: [{ role: "system", content: system }, { role: "user", content: user }] })
+        async function callOpenAI(key, url, model, sys, user) {
+            const res = await fetch(`${url.replace(/\/$/,'')}/chat/completions`, {
+                method:'POST', headers:{'Content-Type':'application/json', 'Authorization':`Bearer ${key}`},
+                body:JSON.stringify({ model:model, messages:[{role:"system",content:sys},{role:"user",content:user}] })
             });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error?.message || "Network Error");
-            return data.choices[0].message.content;
+            const d = await res.json();
+            if(!res.ok) throw new Error(d.error?.message||"API Error");
+            return d.choices[0].message.content;
         }
-
-        function renderResult(markdown) {
-            markdownOutput.innerHTML = marked.parse(markdown);
-            // Post-process styles
-            markdownOutput.querySelectorAll('em').forEach(em => {
-                if(em.innerText.includes('【')) em.className = 'knowledge-point';
-            });
-            markdownOutput.querySelectorAll('p').forEach(p => {
-                if(p.innerText.includes('姓名：')) p.className = 'exam-header-info';
-            });
-            markdownOutput.querySelectorAll('h1').forEach(h1 => {
-                if(h1.innerText.includes('参考答案')) {
-                    h1.style.color = '#dc2626'; h1.style.marginTop = '40px'; h1.style.borderTop = '2px dashed #ccc'; h1.style.paddingTop = '20px';
-                }
-            });
-        }
-
+        
         function printExam() { window.print(); }
         function exportToWord() {
-            const content = document.getElementById('markdownOutput').innerText;
-            if (!content) return alert("无内容");
-            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = `${document.getElementById('examTitle').value}.md`;
-            a.click();
+            const blob = new Blob([document.getElementById('markdownOutput').innerText], {type:'text/plain'});
+            const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='exam.md'; a.click();
         }
     </script>
 </body>
